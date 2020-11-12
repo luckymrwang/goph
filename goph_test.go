@@ -57,6 +57,7 @@ func TestGoph(t *testing.T) {
 	t.Run("gophRunTest", gophRunTest)
 	t.Run("gophAuthTest", gophAuthTest)
 	t.Run("gophWrongPassTest", gophWrongPassTest)
+	t.Run("mineTest", gophMineTest)
 }
 
 func gophAuthTest(t *testing.T) {
@@ -64,7 +65,7 @@ func gophAuthTest(t *testing.T) {
 	newServer("2020")
 
 	_, err := goph.NewConn(&goph.Config{
-		Addr:     "127.0.10.10",
+		Addr:     "127.0.0.1",
 		Port:     2020,
 		User:     "melbahja",
 		Auth:     goph.Password("123456"),
@@ -81,7 +82,7 @@ func gophRunTest(t *testing.T) {
 	newServer("2021")
 
 	client, err := goph.NewConn(&goph.Config{
-		Addr:     "127.0.10.10",
+		Addr:     "127.0.0.1",
 		Port:     2021,
 		User:     "melbahja",
 		Auth:     goph.Password("123456"),
@@ -92,11 +93,11 @@ func gophRunTest(t *testing.T) {
 		t.Errorf("connect error: %s", err)
 	}
 
-	_, err = client.Run("ls")
-
+	out, err := client.Run("ls -l")
 	if err != nil {
 		t.Errorf("run error: %s", err)
 	}
+	fmt.Println(string(out))
 }
 
 func gophWrongPassTest(t *testing.T) {
@@ -104,7 +105,7 @@ func gophWrongPassTest(t *testing.T) {
 	newServer("2022")
 
 	_, err := goph.NewConn(&goph.Config{
-		Addr:     "127.0.10.10",
+		Addr:     "127.0.0.1",
 		Port:     2022,
 		User:     "melbahja",
 		Auth:     goph.Password("12345"),
@@ -114,6 +115,60 @@ func gophWrongPassTest(t *testing.T) {
 	if err == nil {
 		t.Error("it should return an error")
 	}
+}
+
+func gophMineTest(t *testing.T) {
+
+	// Start new ssh connection with private key.
+	auth, err := goph.Key("/Users/sino/.ssh/id_rsa", "")
+	if err != nil {
+		t.Error(err)
+	}
+
+	client, err := goph.New("root", "10.211.55.6", auth)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Defer closing the network connection.
+	defer client.Close()
+
+	// Execute your command.
+	out, err := client.Run("cd /root")
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Get your output as []byte.
+	fmt.Println(string(out))
+
+	out, err = client.Run("ls -l")
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Get your output as []byte.
+	fmt.Println(string(out))
+
+	out, err = client.Run("cd /root/security-demos")
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Get your output as []byte.
+	fmt.Println(string(out))
+
+	out, err = client.Run("ls -l")
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Get your output as []byte.
+	fmt.Println(string(out))
 }
 
 func newServer(port string) {
@@ -138,7 +193,7 @@ func newServer(port string) {
 
 	// Once a ServerConfig has been configured, connections can be
 	// accepted.
-	listener, err := net.Listen("tcp", "127.0.10.10:"+port)
+	listener, err := net.Listen("tcp", "127.0.0.1:"+port)
 	if err != nil {
 		log.Fatal("failed to listen for connection: ", err)
 	}
